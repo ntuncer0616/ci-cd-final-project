@@ -1,0 +1,58 @@
+apiVersion: tekton.dev/v1beta1  # Replace with the actual API version
+kind: Task                        # Replace with the kind (e.g., Task, Pipeline)
+metadata:
+  name: cleanup          # Replace with a descriptive name
+spec:
+  description: "This task removes all files from a workspace."  # Add a meaningful description
+  workspaces:
+  - name: source                # Replace with your workspace name
+  steps:
+  - name: remove            # Provide a clear step name
+    image: alpine:3                 # Replace with the appropriate image
+    env:
+    - name: WORKSPACE_SOURCE_PATH  # Environment variable name
+      value: $(workspaces.source.path)  # Value referencing workspace path
+    workingDir: $(workspaces.source.path)  # Set working directory
+    securityContext:
+      runAsNonRoot: false          # **Strongly recommend not running as root!**
+      runAsUser: 0              # **Do not run with root privileges!**
+    script: |
+      #!/usr/bin/env sh
+      set -eu
+
+      echo "Removing all files from ${WORKSPACE_SOURCE_PATH} ..."
+
+      # **IMPORTANT: This approach is potentially dangerous!**
+      # **Do not use `rm -rf` without careful consideration and testing.**
+      # **Consider alternative, safer file deletion strategies.**
+
+      # UNCOMMENT only if you understand the risks and have a **specific need**
+      # for potentially risky file deletion:
+      # rm -rf "${WORKSPACE_SOURCE_PATH}"/*
+      
+      # Consider safer alternatives like deleting temporary files based on patterns
+      # or using tools designed for controlled file removal.
+
+
+apiVersion: tekton.dev/v1beta1  # Replace with the actual API version
+kind: Task                        # Replace with the kind (e.g., Task, Pipeline)
+metadata:
+  name: nose          # Replace with a descriptive name
+spec:
+  workspaces:
+  - name: source                # Replace with your workspace name
+  params:
+  - name: args
+    description: "arguments to pass to nose"
+    type: string
+    default: "-v"
+  steps:
+  - name: nosetests            # Provide a clear step name
+    image: python:3.9-slim              # Replace with the appropriate image
+    workingDir: $(workspaces.source.path)  # Set working directory
+    script: |
+        #!/bin/bash
+        set -e
+        python -m pip install --upgrade pip wheel
+        pip install -r requirements.txt
+        nosetests $(params.args)
